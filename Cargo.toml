@@ -1,0 +1,19 @@
+[package]
+name = "goose-installer"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = ["windows-taskscheduler-api-rust", "installer", "apps-info"]
+
+[dependencies]
+dirs = "5.0.1"
+toml = "0.8.1"
+windows-taskscheduler = { path = "./windows-taskscheduler-api-rust" }
+apps-info = { path = "./apps-info" }
+
+[dependencies.serde]
+version = "1.0.188"
+features = ["derive"]
+
+
