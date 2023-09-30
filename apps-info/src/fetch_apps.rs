@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 const APPS_INFO_URL: &'static str =
-    "https://raw.githubusercontent.com/otcova/squaring/main/apps/apps-info.toml";
+    "https://raw.githubusercontent.com/otcova/goose-installer/apps/apps-info.toml";
 const REPO_TREE_URL: &'static str =
     "https://api.github.com/repos/otcova/goose-installer/git/trees/apps?recursive=1";
 
