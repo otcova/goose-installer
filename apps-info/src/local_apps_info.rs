@@ -1,7 +1,8 @@
 use crate::*;
+use anyhow::Result;
 use fs2::FileExt;
-use std::fs::File;
-use std::io::{self, *};
+use std::fs::{File, OpenOptions};
+use std::io::*;
 use std::path::PathBuf;
 
 pub struct LocalAppInfo {
@@ -12,9 +13,9 @@ pub struct LocalAppInfo {
 }
 
 impl LocalAppInfo {
-    pub fn new(root_folder: PathBuf) -> io::Result<Self> {
+    pub fn new(root_folder: PathBuf) -> Result<Self> {
         let path = root_folder.join("apps-info.toml");
-        let file = File::open(&path);
+        let file = OpenOptions::new().write(true).read(true).open(&path);
 
         match file {
             Ok(mut file) => {
@@ -23,7 +24,7 @@ impl LocalAppInfo {
                 // Load File
                 let mut raw_apps_info = String::new();
                 file.read_to_string(&mut raw_apps_info)?;
-                let apps_info: AppsInfo = toml::from_str(&raw_apps_info).unwrap();
+                let apps_info: AppsInfo = toml::from_str(&raw_apps_info)?;
 
                 Ok(Self {
                     file,
@@ -42,7 +43,7 @@ impl LocalAppInfo {
                     modified: true,
                 })
             }
-            Err(err) => Err(err),
+            Err(err) => Err(err.into()),
         }
     }
 
@@ -68,16 +69,20 @@ impl LocalAppInfo {
             self.apps_info.apps.remove(app_name);
         }
     }
+
+    /// It will be called on Drop
+    pub fn save_changes(&mut self) -> Result<()> {
+        if self.modified {
+            self.modified = false;
+            let updated_raw_apps_info = toml::to_string_pretty(&self.apps_info)?;
+            self.file.write_all(updated_raw_apps_info.as_bytes())?;
+        }
+        Ok(())
+    }
 }
 
 impl Drop for LocalAppInfo {
     fn drop(&mut self) {
-        // Save file
-        if self.modified {
-            let updated_raw_apps_info = toml::to_string_pretty(&self.apps_info).unwrap();
-            self.file
-                .write_all(updated_raw_apps_info.as_bytes())
-                .unwrap();
-        }
+        self.save_changes().unwrap();
     }
 }

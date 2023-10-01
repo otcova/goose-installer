@@ -5,7 +5,7 @@ use std::{fs, io};
 
 /// OK -> Success, None -> failure
 pub fn update_apps() -> Option<()> {
-    let fetched = FetchedApps::fetch()?;
+    let fetched = FetchedApps::fetch().ok()?;
     let mut local = LocalAppInfo::new(root_folder()?).ok()?;
 
     // Test for apps to delete
@@ -33,6 +33,8 @@ pub fn update_apps() -> Option<()> {
         }
     }
 
+    let _ = local.save_changes();
+
     Some(())
 }
 
@@ -44,7 +46,7 @@ fn remove_app(local: &mut LocalAppInfo, name: &str) -> io::Result<()> {
 }
 
 fn install_app(fetched: &FetchedApps, local: &mut LocalAppInfo, name: &str) -> Option<()> {
-    fetched.download_app(local, name)?;
+    fetched.download_app(local, name).ok()?;
     let info = &fetched.apps_info_ref().apps[name];
 
     if let Some(exe_name) = &info.run_after_update {

@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::*;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use apps_info::*;
 use windows::core::*;
@@ -19,10 +19,8 @@ fn main() {
     );
 
     if dst_folder.exists() {
-        println!("Already installed, checking installation ...");
         if !exe_path.exists() {
             hide_dir(&dst_folder);
-
             download_installer(dst_folder, &fetched);
         }
     } else {
@@ -33,8 +31,11 @@ fn main() {
     }
 
     // Execute installer
-    Command::new("cmd")
-        .args(&["/C", "start", exe_path.as_os_str().to_str().unwrap()])
+    Command::new("powershell")
+        .args(&["-C", "start", &format!(r#""{}""#, exe_path.display())])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
         .unwrap();
 }
