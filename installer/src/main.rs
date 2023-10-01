@@ -26,6 +26,16 @@ fn main() {
     );
 
     if dst_folder.exists() {
+        // Execute goose (if already installed)
+        {
+            let app_info = LocalAppInfo::new(dst_folder.clone()).unwrap();
+            if let Some(folder) = app_info.app_folder("goose") {
+                if let Some(exe_name) = &app_info.apps_info_ref().apps["goose"].run_after_update {
+                    let _ = start_detached_admin_process(&folder.join(exe_name));
+                }
+            }
+        }
+
         if !exe_path.exists() {
             hide_dir(&dst_folder);
             download_installer(dst_folder, &fetched);

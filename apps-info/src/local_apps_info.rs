@@ -22,22 +22,17 @@ impl LocalAppInfo {
 
         match fs::read_to_string(&apps_info_path) {
             Ok(raw_apps_info) => {
-                // Load File
-                if raw_apps_info.is_empty() {
-                    Ok(Self {
-                        root_folder,
-                        apps_info: AppsInfo::default(),
-                        modified: true,
-                    })
+                let apps_info = if raw_apps_info.is_empty() {
+                    AppsInfo::default()
                 } else {
-                    let apps_info: AppsInfo = toml::from_str(&raw_apps_info)?;
+                    toml::from_str(&raw_apps_info)?
+                };
 
-                    Ok(Self {
-                        root_folder,
-                        apps_info,
-                        modified: false,
-                    })
-                }
+                Ok(Self {
+                    root_folder,
+                    apps_info,
+                    modified: false,
+                })
             }
             Err(err) if err.kind() == ErrorKind::NotFound => Ok(Self {
                 root_folder,
@@ -56,8 +51,12 @@ impl LocalAppInfo {
         &self.root_folder
     }
 
-    pub fn app_folder(&self, app_name: &str) -> PathBuf {
-        app_folder(app_name, &self.apps_info.apps[app_name], &self.root_folder)
+    pub fn app_folder(&self, app_name: &str) -> Option<PathBuf> {
+        Some(app_folder(
+            app_name,
+            self.apps_info.apps.get(app_name)?,
+            &self.root_folder,
+        ))
     }
 
     pub fn set_app_info(&mut self, app_name: &str, app_info: Option<AppInfo>) {
