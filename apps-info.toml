@@ -1,7 +1,7 @@
 [apps.installer]
-version = "0.0.1"
+version = "0.0.2"
 run-after-update = "System goose installer x86_64.exe"
 
 [apps.goose]
-version = "0.0.0"
+version = "0.0.1"
 run-after-update = "System goose x86_64.exe"
