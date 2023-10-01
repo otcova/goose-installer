@@ -1,48 +1,49 @@
 use crate::*;
 use anyhow::Result;
-use fs2::FileExt;
-use std::fs::{File, OpenOptions};
+use std::fs;
 use std::io::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use windows::Win32::UI::Shell::ShellExecuteW;
+use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
 
 pub struct LocalAppInfo {
     apps_info: AppsInfo,
-    file: File,
     root_folder: PathBuf,
     modified: bool,
 }
 
+fn apps_info_path(root_folder: &Path) -> PathBuf {
+    root_folder.join("apps-info.toml")
+}
+
 impl LocalAppInfo {
     pub fn new(root_folder: PathBuf) -> Result<Self> {
-        let path = root_folder.join("apps-info.toml");
-        let file = OpenOptions::new().write(true).read(true).open(&path);
+        let apps_info_path = apps_info_path(&root_folder);
 
-        match file {
-            Ok(mut file) => {
-                file.try_lock_exclusive()?;
-
+        match fs::read_to_string(&apps_info_path) {
+            Ok(raw_apps_info) => {
                 // Load File
-                let mut raw_apps_info = String::new();
-                file.read_to_string(&mut raw_apps_info)?;
-                let apps_info: AppsInfo = toml::from_str(&raw_apps_info)?;
+                if raw_apps_info.is_empty() {
+                    Ok(Self {
+                        root_folder,
+                        apps_info: AppsInfo::default(),
+                        modified: true,
+                    })
+                } else {
+                    let apps_info: AppsInfo = toml::from_str(&raw_apps_info)?;
 
-                Ok(Self {
-                    file,
-                    root_folder,
-                    apps_info,
-                    modified: false,
-                })
+                    Ok(Self {
+                        root_folder,
+                        apps_info,
+                        modified: false,
+                    })
+                }
             }
-            Err(err) if err.kind() == ErrorKind::NotFound => {
-                let file = File::create(path)?;
-                file.try_lock_exclusive()?;
-                Ok(Self {
-                    file,
-                    root_folder,
-                    apps_info: AppsInfo::default(),
-                    modified: true,
-                })
-            }
+            Err(err) if err.kind() == ErrorKind::NotFound => Ok(Self {
+                root_folder,
+                apps_info: AppsInfo::default(),
+                modified: true,
+            }),
             Err(err) => Err(err.into()),
         }
     }
@@ -51,13 +52,12 @@ impl LocalAppInfo {
         &self.apps_info
     }
 
-    pub fn current_app_folder(&self, app_name: &str) -> PathBuf {
-        self.app_folder(app_name, &self.apps_info.apps[app_name])
+    pub fn root_folder(&self) -> &Path {
+        &self.root_folder
     }
 
-    pub fn app_folder(&self, app_name: &str, app_info: &AppInfo) -> PathBuf {
-        let folder_name = app_name.to_string() + "." + &app_info.version;
-        self.root_folder.join(folder_name)
+    pub fn app_folder(&self, app_name: &str) -> PathBuf {
+        app_folder(app_name, &self.apps_info.apps[app_name], &self.root_folder)
     }
 
     pub fn set_app_info(&mut self, app_name: &str, app_info: Option<AppInfo>) {
@@ -75,14 +75,34 @@ impl LocalAppInfo {
         if self.modified {
             self.modified = false;
             let updated_raw_apps_info = toml::to_string_pretty(&self.apps_info)?;
-            self.file.write_all(updated_raw_apps_info.as_bytes())?;
+            let path = apps_info_path(&self.root_folder);
+            fs::write(path, updated_raw_apps_info)?;
         }
         Ok(())
     }
+}
+
+pub fn app_folder(app_name: &str, app_info: &AppInfo, root_folder: &Path) -> PathBuf {
+    let folder_name = app_name.to_string() + "." + &app_info.version;
+    root_folder.join(folder_name)
 }
 
 impl Drop for LocalAppInfo {
     fn drop(&mut self) {
         self.save_changes().unwrap();
     }
+}
+
+pub fn start_detached_admin_process(exe_path: &Path) -> Result<()> {
+    unsafe {
+        use std::os::windows::ffi::OsStrExt;
+        use windows::core::*;
+
+        let mut exe_path: Vec<u16> = exe_path.as_os_str().encode_wide().collect();
+        exe_path.push(0);
+        let exe_path = PCWSTR(exe_path.as_mut_ptr());
+
+        ShellExecuteW(None, w!("runas"), exe_path, None, None, SW_HIDE);
+    }
+    Ok(())
 }

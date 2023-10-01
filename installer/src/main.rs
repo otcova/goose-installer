@@ -1,17 +1,24 @@
+use std::env::current_exe;
 use std::fs;
 use std::path::*;
-use std::process::{Command, Stdio};
 
 use apps_info::*;
 use windows::core::*;
 use windows::Win32::Storage::FileSystem::*;
+use windows::Win32::UI::Shell::IsUserAnAdmin;
 
 fn main() {
+    // Elevate Process
+    if unsafe { !IsUserAnAdmin().as_bool() } {
+        start_detached_admin_process(&current_exe().unwrap()).unwrap();
+        return;
+    }
+
     let mut dst_folder = dirs::home_dir().unwrap();
     dst_folder.push(".system-goose-installer-x86_x64");
 
     let fetched = FetchedApps::fetch().unwrap();
-    let exe_path = dst_folder.join(
+    let exe_path = fetched.app_folder("installer", &dst_folder).join(
         fetched.apps_info_ref().apps["installer"]
             .run_after_update
             .as_ref()
@@ -31,13 +38,7 @@ fn main() {
     }
 
     // Execute installer
-    Command::new("powershell")
-        .args(&["-C", "start", &format!(r#""{}""#, exe_path.display())])
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
+    start_detached_admin_process(&exe_path).unwrap();
 }
 
 fn hide_dir(dir: &Path) {

@@ -28,11 +28,12 @@ name = "apps-info"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "fs2",
+ "base64",
  "reqwest",
  "serde",
  "serde_json",
  "toml",
+ "windows 0.51.1",
 ]
 
 [[package]]
@@ -208,16 +209,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a62bc1cf6f830c2ec14a513a9fb124d0a213a629668a4186f329db21fe045652"
 dependencies = [
  "percent-encoding",
-]
-
-[[package]]
-name = "fs2"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
-dependencies = [
- "libc",
- "winapi",
 ]
 
 [[package]]
@@ -442,7 +433,7 @@ dependencies = [
  "dirs",
  "reqwest",
  "serde",
- "windows",
+ "windows 0.37.0",
 ]
 
 [[package]]
@@ -1191,6 +1182,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows"
+version = "0.51.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca229916c5ee38c2f2bc1e9d8f04df975b4bd93f9955dc69fabb5d91270045c9"
+dependencies = [
+ "windows-core",
+ "windows-targets",
+]
+
+[[package]]
+name = "windows-core"
+version = "0.51.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1f8cf84f35d2db49a46868f947758c7a1138116f7fac3bc844f43ade1292e64"
+dependencies = [
+ "windows-targets",
+]
+
+[[package]]
 name = "windows-sys"
 version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1218,7 +1228,7 @@ dependencies = [
 name = "windows-taskscheduler"
 version = "0.2.0"
 dependencies = [
- "windows",
+ "windows 0.37.0",
 ]
 
 [[package]]

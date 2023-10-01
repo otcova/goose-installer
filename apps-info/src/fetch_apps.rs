@@ -1,8 +1,9 @@
 use crate::*;
 use anyhow::*;
+use base64::{engine::general_purpose, Engine};
 use reqwest::blocking::ClientBuilder;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const APPS_INFO_URL: &'static str =
     "https://raw.githubusercontent.com/otcova/goose-installer/apps/apps-info.toml";
@@ -25,9 +26,13 @@ impl FetchedApps {
         &self.apps_info
     }
 
+    pub fn app_folder(&self, app_name: &str, root_folder: &Path) -> PathBuf {
+        local_apps_info::app_folder(app_name, &self.apps_info.apps[app_name], &root_folder)
+    }
+
     pub fn download_app(&self, local: &mut LocalAppInfo, app_name: &str) -> Result<()> {
         let info = &self.apps_info.apps[app_name];
-        let app_folder = local.app_folder(app_name, info);
+        let app_folder = self.app_folder(app_name, local.root_folder());
         let _ = fs::remove_dir_all(&app_folder);
         fs::create_dir(&app_folder)?;
 
@@ -75,10 +80,21 @@ fn fetch_dir_content(app_name: &str) -> Result<Vec<(String, String)>> {
     Ok(files)
 }
 
+#[derive(Deserialize)]
+struct GitBlob {
+    content: String,
+}
+
 fn download_file<P: AsRef<Path>>(file_url: &str, dst: P) -> Result<()> {
-    let file_blob = reqwest::blocking::get(file_url)?.bytes()?;
+    let client = ClientBuilder::new().user_agent("otcova").build()?;
+    let file_blob = client.get(file_url).send()?.text()?;
+    let mut blob: GitBlob = serde_json::from_str(&file_blob)?;
+    blob.content.retain(|c| c != '\n');
+    let bytes = general_purpose::STANDARD.decode(blob.content)?;
+
     if let Some(parent) = dst.as_ref().parent() {
         fs::create_dir_all(parent)?;
     }
-    Ok(fs::write(dst, file_blob.as_ref())?)
+
+    Ok(fs::write(dst, &bytes)?)
 }

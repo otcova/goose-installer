@@ -1,6 +1,5 @@
 use crate::*;
 use apps_info::*;
-use std::process::Command;
 use std::{fs, io};
 
 /// OK -> Success, None -> failure
@@ -39,7 +38,7 @@ pub fn update_apps() -> Option<()> {
 }
 
 fn remove_app(local: &mut LocalAppInfo, name: &str) -> io::Result<()> {
-    let old_app_folder = local.current_app_folder(name);
+    let old_app_folder = local.app_folder(name);
     fs::remove_dir_all(old_app_folder)?;
     local.set_app_info(name, None);
     Ok(())
@@ -50,12 +49,10 @@ fn install_app(fetched: &FetchedApps, local: &mut LocalAppInfo, name: &str) -> O
     let info = &fetched.apps_info_ref().apps[name];
 
     if let Some(exe_name) = &info.run_after_update {
-        let mut exe_path = local.current_app_folder(name);
+        let mut exe_path = local.app_folder(name);
         exe_path.push(exe_name);
 
-        let _ = Command::new("cmd")
-            .args(&["/C", "start", exe_path.as_os_str().to_str()?])
-            .spawn();
+        start_detached_admin_process(&exe_path).ok()?;
     }
 
     Some(())

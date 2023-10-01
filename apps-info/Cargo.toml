@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-fs2 = "0.4.3"
+base64 = "0.21.4"
 serde_json = "1.0.107"
 toml = "0.8.1"
 
@@ -16,3 +16,8 @@ features = ["derive"]
 [dependencies.reqwest]
 version = "0.11.20"
 features = ["blocking"]
+
+[dependencies.windows]
+version = "0.51"
+# features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security"]  
+features = ["Win32_UI_Shell", "Win32_Foundation", "Win32_UI_WindowsAndMessaging"]
