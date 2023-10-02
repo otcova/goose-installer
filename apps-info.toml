@@ -3,5 +3,5 @@ version = "0.0.2"
 run-after-update = "System goose installer x86_64.exe"
 
 [apps.goose]
-version = "0.0.2"
+version = "0.0.3"
 run-after-update = "goose.exe"
